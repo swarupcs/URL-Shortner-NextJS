@@ -96,7 +96,9 @@ export function UserUrlsTable({ urls }: UserUrlsTableProps) {
     );
   };
 
-  console.log('localUrls', localUrls);
+  // console.log('localUrls', localUrls);
+
+  // console.log('urls', urls);
 
   if (localUrls.length === 0) {
     return (

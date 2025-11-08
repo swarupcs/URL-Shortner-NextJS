@@ -24,8 +24,8 @@ export default async function DashboardPage() {
   const response = await getUserUrls(session?.user.id as string);
   const userUrls = response.success && response.data ? response.data : [];
 
-  console.log("response", response);
-  console.log('userUrls', userUrls);
+  // console.log('response', response);
+  // console.log('userUrls', userUrls);
 
   return (
     <>
