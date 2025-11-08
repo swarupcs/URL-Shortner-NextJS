@@ -1,3 +1,4 @@
+import { LoginForm } from '@/components/auth/login-form';
 import {
   Card,
   CardContent,
@@ -26,7 +27,9 @@ export default function LoginPage() {
               Choose a sign-in method below to continue.
             </CardDescription>
           </CardHeader>
-          <CardContent></CardContent>
+          <CardContent>
+            <LoginForm />
+          </CardContent>
         </Card>
       </div>
     </div>
