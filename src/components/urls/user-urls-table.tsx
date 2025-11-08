@@ -96,6 +96,8 @@ export function UserUrlsTable({ urls }: UserUrlsTableProps) {
     );
   };
 
+  console.log('localUrls', localUrls);
+
   if (localUrls.length === 0) {
     return (
       <div className="text-center py-8">
