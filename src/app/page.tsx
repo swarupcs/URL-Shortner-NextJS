@@ -17,7 +17,7 @@ export default function Home() {
           Shorten Your Links
         </h1>
         <p className='text-lg text-muted-foreground mb-8 max-w-2xl mx-auto'>
-          Paste your long URL and get a shortened one. It's free and easy to
+          Paste your long URL and get a shortened one. It&apos;s free and easy to
           use.
         </p>
 

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { deleteUrl } from "@/server/actions/urls/delete-url";
 import { QRCodeModal } from "../modals/qr-code-modal";
 import { EditUrlModal } from "../modals/edit-url-modal";
+import { BASEURL } from "@/lib/const";
 
 interface Url {
   id: number;
@@ -34,7 +35,8 @@ export function UserUrlsTable({ urls }: UserUrlsTableProps) {
   } | null>(null);
 
   const copyToClipboard = async (shortCode: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    // const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    const baseUrl = BASEURL;
     const shortUrl = `${baseUrl}/r/${shortCode}`;
 
     try {
@@ -73,7 +75,8 @@ export function UserUrlsTable({ urls }: UserUrlsTableProps) {
   };
 
   const showQrCode = (shortCode: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    // const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    const baseUrl = BASEURL;
     const shortUrl = `${baseUrl}/r/${shortCode}`;
     setQrCodeUrl(shortUrl);
     setQrCodeShortCode(shortCode);
@@ -126,8 +129,9 @@ export function UserUrlsTable({ urls }: UserUrlsTableProps) {
           </thead>
           <tbody>
             {localUrls.map((url) => {
-              const baseUrl =
-                process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+              // const baseUrl =
+              //   process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+              const baseUrl = BASEURL;
               const shortUrl = `${baseUrl}/r/${url.shortCode}`;
 
               return (

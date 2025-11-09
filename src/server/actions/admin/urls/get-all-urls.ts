@@ -76,7 +76,7 @@ export async function getAllUrls(
           url.shortCode.toLowerCase().includes(search.toLowerCase()) ||
           url.userName?.toLowerCase().includes(search.toLowerCase()) ||
           url.userEmail?.toLowerCase().includes(search.toLowerCase()) ||
-          url.flagReason?.toLowerCase().includes(search.toLowerCase())
+          (url.flagReason?.toLowerCase().includes(search.toLowerCase()) || false)
       );
     }
 
@@ -123,28 +123,49 @@ export async function getAllUrls(
     // apply sorting
     if (sortBy && sortOrder) {
       transformedUrls.sort((a, b) => {
-        let valueA: any;
-        let valueB: any;
+        let valueA: string | number | Date;
+        let valueB: string | number | Date;
 
         // handle sorting by user name
         if (sortBy === "userName") {
           valueA = a.userName || a.userEmail || "";
           valueB = b.userName || b.userEmail || "";
         } else {
-          valueA = a[sortBy];
-          valueB = b[sortBy];
+          // For other properties, we need to handle the type correctly
+          switch (sortBy) {
+            case "originalUrl":
+            case "shortCode":
+              valueA = a[sortBy] || "";
+              valueB = b[sortBy] || "";
+              break;
+            case "clicks":
+              valueA = a[sortBy] || 0;
+              valueB = b[sortBy] || 0;
+              break;
+            case "createdAt":
+              valueA = a[sortBy];
+              valueB = b[sortBy];
+              break;
+            default:
+              valueA = "";
+              valueB = "";
+          }
         }
 
-        // handle null values
-        if (valueA === null) valueA = "";
-        if (valueB === null) valueB = "";
-
-        // sort in ascending or descending order
-        if (sortOrder === "asc") {
-          return valueA < valueB ? -1 : valueA > valueB ? 1 : 0;
-        } else {
-          return valueA > valueB ? -1 : valueA < valueB ? 1 : 0;
+        // Handle comparison for different types
+        if (typeof valueA === 'string' && typeof valueB === 'string') {
+          return sortOrder === "asc" 
+            ? valueA.localeCompare(valueB) 
+            : valueB.localeCompare(valueA);
         }
+        
+        if (valueA < valueB) {
+          return sortOrder === "asc" ? -1 : 1;
+        }
+        if (valueA > valueB) {
+          return sortOrder === "asc" ? 1 : -1;
+        }
+        return 0;
       });
     }
 

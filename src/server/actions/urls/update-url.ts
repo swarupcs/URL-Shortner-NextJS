@@ -1,5 +1,6 @@
 "use server";
 
+import { BASEURL } from "@/lib/const";
 import { ApiResponse } from "@/lib/types";
 import { auth } from "@/server/auth";
 import { db, eq } from "@/server/db";
@@ -78,7 +79,8 @@ export async function updateUrl(
       })
       .where(eq(urls.id, id));
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    // const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const baseUrl = BASEURL;
     const shortUrl = `${baseUrl}/r/${customCode}`;
 
     revalidatePath("/dashboard");

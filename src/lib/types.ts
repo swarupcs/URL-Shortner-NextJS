@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-export const urlSchema = z.object({
+// Schema for form validation (what the form actually uses)
+export const urlFormSchema = z.object({
   url: z
     .string()
     .min(1, 'URL is required')
@@ -23,13 +24,10 @@ export const urlSchema = z.object({
     .string()
     .max(20, 'Custom code must be less than 255 characters')
     .regex(/^[a-zA-Z0-9_-]+$/, 'Custom code must be alphanumeric or hyphen')
-    .optional()
-    .or(z.literal(''))
-    .nullable()
-    .transform((val) => (val === null || val === '' ? undefined : val)),
+    .optional(),
 });
 
-export type UrlFormData = z.infer<typeof urlSchema>;
+export type UrlFormData = z.infer<typeof urlFormSchema>;
 
 export type ApiResponse<T> = {
   success: boolean;

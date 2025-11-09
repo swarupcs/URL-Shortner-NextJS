@@ -64,7 +64,7 @@ export async function getAllUsers(
       allUsers = allUsers.filter(
         (user) =>
           user.email?.toLowerCase().includes(searchLower) ||
-          user.name?.toLowerCase().includes(searchLower)
+          (user.name?.toLowerCase().includes(searchLower) || false)
       );
     }
 
@@ -72,17 +72,40 @@ export async function getAllUsers(
 
     if (sortBy && sortOrder) {
       allUsers.sort((a, b) => {
-        let valueA: any = a[sortBy];
-        let valueB: any = b[sortBy];
+        // Use proper typing instead of any
+        let valueA: string | Date;
+        let valueB: string | Date;
 
-        if (valueA === null) valueA = "";
-        if (valueB === null) valueB = "";
-
-        if (sortOrder === "asc") {
-          return valueA < valueB ? -1 : valueA > valueB ? 1 : 0;
-        } else {
-          return valueA > valueB ? -1 : valueA < valueB ? 1 : 0;
+        switch (sortBy) {
+          case "name":
+          case "email":
+          case "role":
+            valueA = a[sortBy] || "";
+            valueB = b[sortBy] || "";
+            break;
+          case "createdAt":
+            valueA = a[sortBy];
+            valueB = b[sortBy];
+            break;
+          default:
+            valueA = "";
+            valueB = "";
         }
+
+        // Handle comparison for different types
+        if (typeof valueA === 'string' && typeof valueB === 'string') {
+          return sortOrder === "asc" 
+            ? valueA.localeCompare(valueB) 
+            : valueB.localeCompare(valueA);
+        }
+        
+        if (valueA < valueB) {
+          return sortOrder === "asc" ? -1 : 1;
+        }
+        if (valueA > valueB) {
+          return sortOrder === "asc" ? 1 : -1;
+        }
+        return 0;
       });
     }
 

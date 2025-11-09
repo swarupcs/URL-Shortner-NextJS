@@ -9,7 +9,7 @@ import {
   FormMessage,
 } from '../ui/form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { UrlFormData, urlSchema } from '@/lib/types';
+import { UrlFormData, urlFormSchema } from '@/lib/types';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { usePathname, useRouter } from 'next/navigation';
@@ -19,9 +19,9 @@ import { Card, CardContent } from '../ui/card';
 import { AlertTriangle, Copy, QrCode } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { QRCodeModal } from '../modals/qr-code-modal';
-import { boolean } from 'drizzle-orm/gel-core';
 import { toast } from 'sonner';
 import { SignupSuggestionDialog } from '../dialogs/signup-suggestion-dialog';
+import { BASEURL } from '@/lib/const';
 
 export function UrlShortenerForm() {
   const { data: session } = useSession();
@@ -42,10 +42,10 @@ export function UrlShortenerForm() {
   } | null>(null);
 
   const form = useForm<UrlFormData>({
-    resolver: zodResolver(urlSchema),
+    resolver: zodResolver(urlFormSchema),
     defaultValues: {
       url: '',
-      customCode: '',
+      customCode: undefined,
     },
   });
 
@@ -61,8 +61,8 @@ export function UrlShortenerForm() {
       formData.append('url', data.url);
 
       // If a custom code is provided, append it to the form data
-      if (data.customCode && data.customCode.trim() !== '') {
-        formData.append('customCode', data.customCode.trim());
+      if (data.customCode) {
+        formData.append('customCode', data.customCode);
       }
 
       const response = await shortenUrl(formData);
@@ -161,15 +161,18 @@ export function UrlShortenerForm() {
                   <FormControl>
                     <div className='flex items-center'>
                       <span className='text-sm text-muted-foreground mr-2'>
-                        {process.env.NEXT_PUBLIC_APP_URL ||
-                          window.location.origin}
+                        {/* {process.env.NEXT_PUBLIC_APP_URL ||
+                          window.location.origin} */}
+                          {BASEURL}
                         /r/
                       </span>
                       <Input
                         placeholder='Custom code (optional)'
                         {...field}
                         value={field.value || ''}
-                        onChange={(e) => field.onChange(e.target.value || '')}
+                        onChange={(e) =>
+                          field.onChange(e.target.value || undefined)
+                        }
                         disabled={isLoading}
                         className='flex-1'
                       />

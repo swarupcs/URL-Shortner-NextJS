@@ -143,7 +143,7 @@ export default function StatsPage() {
         <Card className="shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle>Total URLs</CardTitle>
-            <CardDescription>Number of URLs you've created</CardDescription>
+            <CardDescription>Number of URLs you&apos;ve created</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{userUrls.length}</p>

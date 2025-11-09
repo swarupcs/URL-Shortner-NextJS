@@ -9,6 +9,7 @@ import { urls } from "@/server/db/schema";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/server/auth";
 import { checkUrlSafety } from "./check-url-safety";
+import { BASEURL } from "@/lib/const";
 
 const shortenUrlSchema = z.object({
   url: z.string().refine(isValidUrl, {
@@ -102,7 +103,8 @@ export async function shortenUrl(formData: FormData): Promise<
       flagReason,
     });
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    // const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const baseUrl = BASEURL;
     const shortUrl = `${baseUrl}/r/${shortCode}`;
 
     revalidatePath("/");
