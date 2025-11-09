@@ -8,6 +8,7 @@ import { users } from './db/schema';
 import bcrypt from 'bcryptjs';
 import { JWT } from 'next-auth/jwt';
 import { db } from './db';
+import { CustomDrizzleAdapter } from './db/custom-drizzle-adapter';
 
 // extend the types to include role
 declare module 'next-auth' {
@@ -30,6 +31,7 @@ declare module 'next-auth/jwt' {
 }
 
 export const authConfig: NextAuthConfig = {
+  adapter: CustomDrizzleAdapter(), 
   secret: process.env.AUTH_SECRET,
   pages: {
     signIn: '/login',
