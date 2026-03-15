@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { signOut, useSession } from "next-auth/react";
-import Link from "next/link";
-import { Button } from "../ui/button";
+import { signOut, useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { Button } from '../ui/button';
 import {
   BarChart3Icon,
   LayoutDashboard,
@@ -10,7 +10,9 @@ import {
   LogOut,
   Menu,
   UserPlus,
-} from "lucide-react";
+  Link2,
+  Shield,
+} from 'lucide-react';
 import {
   Sheet,
   SheetClose,
@@ -18,151 +20,270 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "../ui/sheet";
-import { ThemeToggle } from "../ui/theme-toggle";
+} from '../ui/sheet';
+import { ThemeToggle } from '../ui/theme-toggle';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
+
+const navLinks = [
+  { href: '/stats', label: 'Stats', icon: BarChart3Icon },
+  {
+    href: '/dashboard',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    authRequired: true,
+  },
+  {
+    href: '/dashboard/stats',
+    label: 'My Analytics',
+    icon: BarChart3Icon,
+    authRequired: true,
+  },
+];
 
 export function Header() {
   const { data: session, status } = useSession();
-  const isAuthenticated = status === "authenticated";
+  const isAuthenticated = status === 'authenticated';
+  const pathname = usePathname();
 
   return (
-    <header className="border-b">
-      <div className="container mx-auto flex items-center justify-between p-4">
-        <Link href={"/"} className="text-xl font-bold">
-          ShortLink
+    <header className='sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-xl'>
+      <div className='container mx-auto flex items-center justify-between h-14 px-4'>
+        {/* Logo */}
+        <Link
+          href='/'
+          className='flex items-center gap-2 font-bold text-lg group'
+        >
+          <div className='size-8 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center text-white group-hover:scale-105 transition-transform'>
+            <Link2 className='size-4' />
+          </div>
+          <span className='bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent'>
+            ShortLink
+          </span>
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-2">
-          <ThemeToggle />
-          <Button variant={"ghost"} size={"sm"} asChild>
-            <Link href={"/stats"} className="flex items-center gap-1">
-              <BarChart3Icon className="size-4" />
-              Stats
-            </Link>
-          </Button>
+        <nav className='hidden md:flex items-center gap-1'>
+          <Link
+            href='/stats'
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+              pathname === '/stats'
+                ? 'bg-muted text-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/60',
+            )}
+          >
+            <BarChart3Icon className='size-3.5' />
+            Stats
+          </Link>
 
-          {isAuthenticated ? (
+          {isAuthenticated && (
             <>
-              <Button variant={"ghost"} size={"sm"} asChild>
-                <Link href={"/dashboard"} className="flex items-center gap-1">
-                  <LayoutDashboard className="size-4" />
-                  Dashboard
-                </Link>
-              </Button>
-
-              <Button variant={"ghost"} size={"sm"} asChild>
-                <Link
-                  href={"/dashboard/stats"}
-                  className="flex items-center gap-1"
-                >
-                  <LayoutDashboard className="size-4" />
-                  My Stats
-                </Link>
-              </Button>
-
-              <Button variant={"ghost"} size={"sm"} onClick={() => signOut()}>
-                <LogOut className="size-4" />
-                Logout
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant={"ghost"} size={"sm"} asChild>
-                <Link href={"/login"} className="flex items-center gap-1">
-                  <LogIn className="size-4" />
-                  Login
-                </Link>
-              </Button>
-
-              <Button variant={"ghost"} size={"sm"} asChild>
-                <Link href={"/register"} className="flex items-center gap-1">
-                  <UserPlus className="size-4" />
-                  Register
-                </Link>
-              </Button>
+              <Link
+                href='/dashboard'
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                  pathname === '/dashboard'
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60',
+                )}
+              >
+                <LayoutDashboard className='size-3.5' />
+                Dashboard
+              </Link>
+              <Link
+                href='/dashboard/stats'
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                  pathname === '/dashboard/stats'
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60',
+                )}
+              >
+                <BarChart3Icon className='size-3.5' />
+                Analytics
+              </Link>
             </>
           )}
         </nav>
 
-        {/* Mobile nav */}
-        <div className="flex items-center gap-2 md:hidden">
-          {/* TODO: add theme toggle here */}
+        {/* Right side */}
+        <div className='hidden md:flex items-center gap-2'>
+          <ThemeToggle />
+          {isAuthenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className='flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-muted transition-colors'>
+                  <Avatar className='size-7'>
+                    <AvatarImage src={session?.user?.image || undefined} />
+                    <AvatarFallback className='text-xs bg-violet-100 dark:bg-violet-900 text-violet-700 dark:text-violet-300'>
+                      {session?.user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className='text-sm font-medium max-w-[120px] truncate'>
+                    {session?.user?.name || session?.user?.email}
+                  </span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='end' className='w-56'>
+                <DropdownMenuLabel>
+                  <p className='font-medium'>{session?.user?.name}</p>
+                  <p className='text-xs font-normal text-muted-foreground truncate'>
+                    {session?.user?.email}
+                  </p>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href='/dashboard' className='cursor-pointer'>
+                    <LayoutDashboard className='size-4 mr-2' />
+                    Dashboard
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href='/dashboard/stats' className='cursor-pointer'>
+                    <BarChart3Icon className='size-4 mr-2' />
+                    Analytics
+                  </Link>
+                </DropdownMenuItem>
+                {session?.user?.role === 'admin' && (
+                  <DropdownMenuItem asChild>
+                    <Link href='/admin' className='cursor-pointer'>
+                      <Shield className='size-4 mr-2' />
+                      Admin Panel
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className='text-destructive focus:text-destructive cursor-pointer'
+                >
+                  <LogOut className='size-4 mr-2' />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className='flex items-center gap-2'>
+              <Button variant='ghost' size='sm' asChild>
+                <Link href='/login' className='flex items-center gap-1.5'>
+                  <LogIn className='size-3.5' />
+                  Login
+                </Link>
+              </Button>
+              <Button
+                size='sm'
+                asChild
+                className='bg-violet-600 hover:bg-violet-700 text-white'
+              >
+                <Link href='/register' className='flex items-center gap-1.5'>
+                  <UserPlus className='size-3.5' />
+                  Sign up
+                </Link>
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Mobile */}
+        <div className='flex items-center gap-2 md:hidden'>
+          <ThemeToggle />
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant={"ghost"} size={"icon"}>
-                <Menu className="size-5" />
-                <span className="sr-only">Toggle menu</span>
+              <Button variant='ghost' size='icon' className='size-9'>
+                <Menu className='size-5' />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[250px] sm:w-[300px]">
+            <SheetContent side='right' className='w-72'>
               <SheetHeader>
-                <SheetTitle>Navigation Menu</SheetTitle>
+                <SheetTitle className='flex items-center gap-2'>
+                  <div className='size-7 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center text-white'>
+                    <Link2 className='size-3.5' />
+                  </div>
+                  ShortLink
+                </SheetTitle>
               </SheetHeader>
-              <nav className="flex flex-col gap-4 mt-6">
-                <Button variant={"ghost"} size={"sm"} asChild>
+              <nav className='flex flex-col gap-1 mt-6'>
+                <SheetClose asChild>
                   <Link
-                    href={"/stats"}
-                    className="flex items-center gap-2 justify-start w-full"
+                    href='/stats'
+                    className='flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-muted transition-colors'
                   >
-                    <BarChart3Icon className="size-4" />
+                    <BarChart3Icon className='size-4' />
                     Stats
                   </Link>
-                </Button>
-
+                </SheetClose>
                 {isAuthenticated ? (
                   <>
-                    <Button variant={"ghost"} size={"sm"} asChild>
+                    <SheetClose asChild>
                       <Link
-                        href={"/dashboard"}
-                        className="flex items-center gap-2 justify-start w-full"
+                        href='/dashboard'
+                        className='flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-muted transition-colors'
                       >
-                        <LayoutDashboard className="size-4" />
+                        <LayoutDashboard className='size-4' />
                         Dashboard
                       </Link>
-                    </Button>
-
-                    <Button variant={"ghost"} size={"sm"} asChild>
+                    </SheetClose>
+                    <SheetClose asChild>
                       <Link
-                        href={"/dashboard/stats"}
-                        className="flex items-center gap-2 justify-start w-full"
+                        href='/dashboard/stats'
+                        className='flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-muted transition-colors'
                       >
-                        <LayoutDashboard className="size-4" />
-                        My Stats
+                        <BarChart3Icon className='size-4' />
+                        Analytics
                       </Link>
-                    </Button>
-
-                    <Button
-                      variant={"ghost"}
-                      size={"sm"}
-                      onClick={() => signOut()}
-                    >
-                      <LogOut className="size-4" />
-                      Logout
-                    </Button>
+                    </SheetClose>
+                    {session?.user?.role === 'admin' && (
+                      <SheetClose asChild>
+                        <Link
+                          href='/admin'
+                          className='flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-muted transition-colors'
+                        >
+                          <Shield className='size-4' />
+                          Admin Panel
+                        </Link>
+                      </SheetClose>
+                    )}
+                    <div className='mt-2 pt-2 border-t border-border'>
+                      <button
+                        onClick={() => signOut({ callbackUrl: '/' })}
+                        className='flex w-full items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors'
+                      >
+                        <LogOut className='size-4' />
+                        Sign out
+                      </button>
+                    </div>
                   </>
                 ) : (
-                  <>
-                    <Button variant={"ghost"} size={"sm"} asChild>
+                  <div className='mt-4 flex flex-col gap-2'>
+                    <SheetClose asChild>
                       <Link
-                        href={"/login"}
-                        className="flex items-center gap-2 justify-start w-full"
+                        href='/login'
+                        className='flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-border hover:bg-muted transition-colors justify-center'
                       >
-                        <LogIn className="size-4" />
+                        <LogIn className='size-4' />
                         Login
                       </Link>
-                    </Button>
-
-                    <Button variant={"ghost"} size={"sm"} asChild>
+                    </SheetClose>
+                    <SheetClose asChild>
                       <Link
-                        href={"/register"}
-                        className="flex items-center gap-2 justify-start w-full"
+                        href='/register'
+                        className='flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors justify-center'
                       >
-                        <UserPlus className="size-4" />
-                        Register
+                        <UserPlus className='size-4' />
+                        Create Account
                       </Link>
-                    </Button>
-                  </>
+                    </SheetClose>
+                  </div>
                 )}
               </nav>
             </SheetContent>

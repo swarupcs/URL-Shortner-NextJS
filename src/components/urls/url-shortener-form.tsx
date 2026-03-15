@@ -9,23 +9,58 @@ import {
   FormMessage,
 } from '../ui/form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { UrlFormData, urlFormSchema } from '@/lib/types';
+import { z } from 'zod';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { shortenUrl } from '@/server/actions/urls/shorten-url';
 import { Card, CardContent } from '../ui/card';
-import { AlertTriangle, Copy, QrCode } from 'lucide-react';
+import {
+  AlertTriangle,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  ExternalLink,
+  Link2,
+  QrCode,
+  Sparkles,
+} from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { QRCodeModal } from '../modals/qr-code-modal';
 import { toast } from 'sonner';
 import { SignupSuggestionDialog } from '../dialogs/signup-suggestion-dialog';
 import { BASEURL } from '@/lib/const';
+import { cn } from '@/lib/utils';
+
+const urlFormSchema = z.object({
+  url: z
+    .string()
+    .min(1, 'URL is required')
+    .transform((val) => {
+      if (!/^https?:\/\//i.test(val)) return `https://${val}`;
+      return val;
+    })
+    .refine((val) => {
+      try {
+        new URL(val);
+        return true;
+      } catch {
+        return false;
+      }
+    }, 'Please enter a valid URL'),
+  customCode: z
+    .string()
+    .max(20, 'Must be less than 20 characters')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Only letters, numbers, hyphens, underscores')
+    .optional(),
+});
+
+type UrlFormData = z.infer<typeof urlFormSchema>;
 
 export function UrlShortenerForm() {
   const { data: session } = useSession();
-
   const router = useRouter();
   const pathname = usePathname();
 
@@ -35,6 +70,8 @@ export function UrlShortenerForm() {
   const [error, setError] = useState<string | null>(null);
   const [showSignupDialog, setShowSignupDialog] = useState(false);
   const [isQrCodeModalOpen, setIsQrCodeModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [flaggedInfo, setFlaggedInfo] = useState<{
     flagged: boolean;
     reason: string | null;
@@ -43,10 +80,7 @@ export function UrlShortenerForm() {
 
   const form = useForm<UrlFormData>({
     resolver: zodResolver(urlFormSchema),
-    defaultValues: {
-      url: '',
-      customCode: undefined,
-    },
+    defaultValues: { url: '', customCode: undefined },
   });
 
   const onSubmit = async (data: UrlFormData) => {
@@ -59,20 +93,13 @@ export function UrlShortenerForm() {
     try {
       const formData = new FormData();
       formData.append('url', data.url);
-
-      // If a custom code is provided, append it to the form data
-      if (data.customCode) {
-        formData.append('customCode', data.customCode);
-      }
+      if (data.customCode) formData.append('customCode', data.customCode);
 
       const response = await shortenUrl(formData);
       if (response.success && response.data) {
         setShortUrl(response.data.shortUrl);
-        // Extract the short code from the short URL
-        const shortCodeMatch = response.data.shortUrl.match(/\/r\/([^/]+)$/);
-        if (shortCodeMatch && shortCodeMatch[1]) {
-          setShortCode(shortCodeMatch[1]);
-        }
+        const match = response.data.shortUrl.match(/\/r\/([^/]+)$/);
+        if (match?.[1]) setShortCode(match[1]);
 
         if (response.data.flagged) {
           setFlaggedInfo({
@@ -80,25 +107,20 @@ export function UrlShortenerForm() {
             reason: response.data.flagReason || null,
             message: response.data.message,
           });
-
-          toast.warning(response.data.message || 'This URL is flagged', {
+          toast.warning('URL flagged for review', {
             description: response.data.flagReason,
           });
         } else {
-          toast.success('URL shortened successfully');
+          toast.success('Link shortened successfully!');
         }
+      } else {
+        setError(response.error || 'Something went wrong');
       }
 
-      if (session?.user && pathname.includes('/dashboard')) {
-        router.refresh();
-      }
-
-      if (!session?.user) {
-        setShowSignupDialog(true);
-      }
-    } catch (error) {
-      setError('An error occurred. Please try again.');
-      console.error(error);
+      if (session?.user && pathname.includes('/dashboard')) router.refresh();
+      if (!session?.user) setShowSignupDialog(true);
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -106,140 +128,182 @@ export function UrlShortenerForm() {
 
   const copyToClipboard = async () => {
     if (!shortUrl) return;
-
     try {
       await navigator.clipboard.writeText(shortUrl);
-    } catch (error) {
-      console.error(error);
+      setCopied(true);
+      toast.success('Copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Failed to copy');
     }
-  };
-
-  const showQrCode = () => {
-    if (!shortUrl || !shortCode) return;
-    setIsQrCodeModalOpen(true);
   };
 
   return (
     <>
       <div className='w-full max-w-2xl mx-auto'>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-            <div className='flex flex-col sm:flex-row gap-2'>
+          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-3'>
+            {/* Main input row */}
+            <div className='flex gap-2 p-1.5 rounded-2xl border border-border bg-background shadow-sm focus-within:ring-2 focus-within:ring-violet-500/20 focus-within:border-violet-400 transition-all'>
+              <div className='flex items-center pl-2 text-muted-foreground'>
+                <Link2 className='size-4 shrink-0' />
+              </div>
               <FormField
                 control={form.control}
                 name='url'
                 render={({ field }) => (
                   <FormItem className='flex-1'>
                     <FormControl>
-                      <Input
-                        placeholder='Paste your long URL here'
+                      <input
                         {...field}
-                        disabled={false}
+                        placeholder='Paste your long URL here...'
+                        className='w-full bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground/60 py-2'
+                        autoComplete='off'
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className='text-xs ml-0 mt-1' />
                   </FormItem>
                 )}
               />
-              <Button type='submit' disabled={isLoading}>
+              <Button
+                type='submit'
+                disabled={isLoading}
+                className='rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white border-0 shadow-none shrink-0'
+              >
                 {isLoading ? (
-                  <>
-                    <span className='mr-2 size-4 animate-spin rounded-full border-2 border-current border-t-transparent' />
-                    Shortening...
-                  </>
+                  <span className='flex items-center gap-2'>
+                    <span className='size-3.5 animate-spin rounded-full border-2 border-white border-t-transparent' />
+                    Shortening
+                  </span>
                 ) : (
-                  'Shorten'
+                  <span className='flex items-center gap-2'>
+                    <Sparkles className='size-3.5' />
+                    Shorten
+                  </span>
                 )}
               </Button>
             </div>
 
-            <FormField
-              control={form.control}
-              name='customCode'
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <div className='flex items-center'>
-                      <span className='text-sm text-muted-foreground mr-2'>
-                        {/* {process.env.NEXT_PUBLIC_APP_URL ||
-                          window.location.origin} */}
-                          {BASEURL}
-                        /r/
-                      </span>
-                      <Input
-                        placeholder='Custom code (optional)'
-                        {...field}
-                        value={field.value || ''}
-                        onChange={(e) =>
-                          field.onChange(e.target.value || undefined)
-                        }
-                        disabled={isLoading}
-                        className='flex-1'
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            {/* Advanced options toggle */}
+            <button
+              type='button'
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className='flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mx-auto'
+            >
+              {showAdvanced ? (
+                <ChevronUp className='size-3' />
+              ) : (
+                <ChevronDown className='size-3' />
               )}
-            />
+              {showAdvanced ? 'Hide' : 'Show'} advanced options
+            </button>
 
+            {/* Advanced: custom code */}
+            {showAdvanced && (
+              <div className='p-4 rounded-xl border border-border/60 bg-muted/30 space-y-3'>
+                <FormField
+                  control={form.control}
+                  name='customCode'
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className='flex items-center gap-2'>
+                        <span className='text-xs text-muted-foreground whitespace-nowrap shrink-0'>
+                          {BASEURL}/r/
+                        </span>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            value={field.value || ''}
+                            onChange={(e) =>
+                              field.onChange(e.target.value || undefined)
+                            }
+                            placeholder='custom-code (optional)'
+                            disabled={isLoading}
+                            className='h-8 text-sm'
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage className='text-xs' />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+
+            {/* Error */}
             {error && (
-              <div className='p-3 bg-destructive/10 text-destructive rounded-md text-sm'>
+              <div className='flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-xl text-sm'>
+                <AlertTriangle className='size-4 shrink-0' />
                 {error}
               </div>
             )}
 
+            {/* Result */}
             {shortUrl && (
-              <Card>
+              <Card className='border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20 overflow-hidden'>
                 <CardContent className='p-4'>
-                  <p className='text-sm font-medium text-muted-foreground mb-2'>
-                    Your shortened URL:
-                  </p>
+                  <div className='flex items-center justify-between mb-3'>
+                    <p className='text-xs font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-wide'>
+                      Your short link
+                    </p>
+                    <a
+                      href={shortUrl}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors'
+                    >
+                      Preview <ExternalLink className='size-3' />
+                    </a>
+                  </div>
+
                   <div className='flex items-center gap-2'>
-                    <Input
-                      type='text'
-                      value={shortUrl}
-                      readOnly
-                      className='font-medium'
-                    />
+                    <div className='flex-1 px-3 py-2 rounded-lg bg-background border border-violet-200 dark:border-violet-700 font-mono text-sm text-violet-700 dark:text-violet-300 truncate'>
+                      {shortUrl}
+                    </div>
                     <Button
                       type='button'
-                      variant={'outline'}
-                      className='flex-shrink-0'
+                      variant='outline'
+                      size='icon'
+                      className={cn(
+                        'size-9 border-violet-200 dark:border-violet-700 shrink-0 transition-all',
+                        copied &&
+                          'bg-emerald-50 dark:bg-emerald-950 border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400',
+                      )}
                       onClick={copyToClipboard}
                     >
-                      <Copy className='size-4 mr-1' />
-                      Copy
+                      {copied ? (
+                        <Check className='size-4' />
+                      ) : (
+                        <Copy className='size-4' />
+                      )}
                     </Button>
                     <Button
                       type='button'
-                      variant={'outline'}
-                      className='flex-shrink-0'
-                      onClick={showQrCode}
+                      variant='outline'
+                      size='icon'
+                      className='size-9 border-violet-200 dark:border-violet-700 shrink-0'
+                      onClick={() => setIsQrCodeModalOpen(true)}
                     >
                       <QrCode className='size-4' />
                     </Button>
                   </div>
 
-                  {flaggedInfo && flaggedInfo.flagged && (
-                    <div className='mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md'>
-                      <div className='flex items-start gap-2'>
-                        <AlertTriangle className='size-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0' />
-                        <div>
-                          <p className='text-sm font-medium text-yellow-800 dark:text-yellow-300'>
-                            This URL has been flagged for review
+                  {flaggedInfo?.flagged && (
+                    <div className='mt-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg flex gap-2'>
+                      <AlertTriangle className='size-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5' />
+                      <div>
+                        <p className='text-sm font-medium text-amber-800 dark:text-amber-300'>
+                          Link flagged for review
+                        </p>
+                        <p className='text-xs text-amber-600 dark:text-amber-400 mt-0.5'>
+                          {flaggedInfo.message ||
+                            'This URL is pending admin review before becoming fully active.'}
+                        </p>
+                        {flaggedInfo.reason && (
+                          <p className='text-xs text-amber-600 dark:text-amber-400 mt-1'>
+                            Reason: {flaggedInfo.reason}
                           </p>
-                          <p className='text-xs text-yellow-700 dark:text-yellow-400 mt-1'>
-                            {flaggedInfo.message ||
-                              'This URL will be reviewed by an administrator before it becomes fully active.'}
-                          </p>
-                          {flaggedInfo.reason && (
-                            <p className='text-sm mt-2 text-yellow-600 dark:text-yellow-400'>
-                              <span className='font-medium'>Reason:</span>{' '}
-                              {flaggedInfo.reason || 'Unknown reason'}
-                            </p>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
                   )}
